@@ -66,7 +66,9 @@ impl Configuration {
         if self.num_threads > 0 {
             self.num_threads
         } else {
-            match env::var("RAYON_RS_NUM_CPUS").ok().and_then(|s| usize::from_str(&s).ok()) {
+            match env::var("RAYON_RS_NUM_CPUS")
+                      .ok()
+                      .and_then(|s| usize::from_str(&s).ok()) {
                 Some(x) if x > 0 => x,
                 _ => num_cpus::get(),
             }
@@ -81,7 +83,9 @@ impl Configuration {
     /// Set a closure which takes a thread index and returns
     /// the thread's name.
     pub fn set_thread_name<F>(mut self, closure: F) -> Self
-    where F: FnMut(usize) -> String + 'static {
+    where
+        F: FnMut(usize) -> String + 'static,
+    {
         self.get_thread_name = Some(Box::new(closure));
         self
     }
@@ -121,7 +125,7 @@ impl Configuration {
     }
 
     /// Get the stack size of the worker threads
-    pub fn stack_size(&self) -> Option<usize>{
+    pub fn stack_size(&self) -> Option<usize> {
         self.stack_size
     }
 
@@ -191,8 +195,14 @@ pub fn dump_stats() {
 
 impl fmt::Debug for Configuration {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let Configuration { ref num_threads, ref get_thread_name, ref panic_handler, ref stack_size,
-                            ref start_handler, ref exit_handler } = *self;
+        let Configuration {
+            ref num_threads,
+            ref get_thread_name,
+            ref panic_handler,
+            ref stack_size,
+            ref start_handler,
+            ref exit_handler,
+        } = *self;
 
         // Just print `Some("<closure>")` or `None` to the debug
         // output.
@@ -205,12 +215,12 @@ impl fmt::Debug for Configuration {
         let exit_handler = exit_handler.as_ref().map(|_| "<closure>");
 
         f.debug_struct("Configuration")
-         .field("num_threads", num_threads)
-         .field("get_thread_name", &get_thread_name)
-         .field("panic_handler", &panic_handler)
-         .field("stack_size", &stack_size)
-         .field("start_handler", &start_handler)
-         .field("exit_handler", &exit_handler)
-         .finish()
+            .field("num_threads", num_threads)
+            .field("get_thread_name", &get_thread_name)
+            .field("panic_handler", &panic_handler)
+            .field("stack_size", &stack_size)
+            .field("start_handler", &start_handler)
+            .field("exit_handler", &exit_handler)
+            .finish()
     }
 }

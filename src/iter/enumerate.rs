@@ -17,18 +17,21 @@ pub struct Enumerate<I: IndexedParallelIterator> {
 ///
 /// NB: a free fn because it is NOT part of the end-user API.
 pub fn new<I>(base: I) -> Enumerate<I>
-    where I: IndexedParallelIterator
+where
+    I: IndexedParallelIterator,
 {
     Enumerate { base: base }
 }
 
 impl<I> ParallelIterator for Enumerate<I>
-    where I: IndexedParallelIterator
+where
+    I: IndexedParallelIterator,
 {
     type Item = (usize, I::Item);
 
     fn drive_unindexed<C>(self, consumer: C) -> C::Result
-        where C: UnindexedConsumer<Self::Item>
+    where
+        C: UnindexedConsumer<Self::Item>,
     {
         bridge(self, consumer)
     }
@@ -39,7 +42,8 @@ impl<I> ParallelIterator for Enumerate<I>
 }
 
 impl<I> BoundedParallelIterator for Enumerate<I>
-    where I: IndexedParallelIterator
+where
+    I: IndexedParallelIterator,
 {
     fn upper_bound(&mut self) -> usize {
         self.len()
@@ -51,7 +55,8 @@ impl<I> BoundedParallelIterator for Enumerate<I>
 }
 
 impl<I> ExactParallelIterator for Enumerate<I>
-    where I: IndexedParallelIterator
+where
+    I: IndexedParallelIterator,
 {
     fn len(&mut self) -> usize {
         self.base.len()
@@ -59,10 +64,12 @@ impl<I> ExactParallelIterator for Enumerate<I>
 }
 
 impl<I> IndexedParallelIterator for Enumerate<I>
-    where I: IndexedParallelIterator
+where
+    I: IndexedParallelIterator,
 {
     fn with_producer<CB>(self, callback: CB) -> CB::Output
-        where CB: ProducerCallback<Self::Item>
+    where
+        CB: ProducerCallback<Self::Item>,
     {
         return self.base.with_producer(Callback { callback: callback });
 
@@ -71,11 +78,13 @@ impl<I> IndexedParallelIterator for Enumerate<I>
         }
 
         impl<I, CB> ProducerCallback<I> for Callback<CB>
-            where CB: ProducerCallback<(usize, I)>
+        where
+            CB: ProducerCallback<(usize, I)>,
         {
             type Output = CB::Output;
             fn callback<P>(self, base: P) -> CB::Output
-                where P: Producer<Item = I>
+            where
+                P: Producer<Item = I>,
             {
                 let producer = EnumerateProducer {
                     base: base,
@@ -96,7 +105,8 @@ struct EnumerateProducer<P> {
 }
 
 impl<P> Producer for EnumerateProducer<P>
-    where P: Producer
+where
+    P: Producer,
 {
     type Item = (usize, P::Item);
     type IntoIter = iter::Zip<Range<usize>, P::IntoIter>;

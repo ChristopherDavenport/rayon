@@ -30,14 +30,17 @@ use super::internal::*;
 pub trait ReduceOp<T>: Sync {
     fn start_value(&self) -> T;
     fn reduce(&self, value1: T, value2: T) -> T;
-    fn reduce_iter<I>(&self, value: T, iter: I) -> T where I: Iterator<Item = T>;
+    fn reduce_iter<I>(&self, value: T, iter: I) -> T
+    where
+        I: Iterator<Item = T>;
     private_decl!{}
 }
 
 pub fn reduce<PI, R, T>(pi: PI, reduce_op: &R) -> T
-    where PI: ParallelIterator<Item = T>,
-          R: ReduceOp<T>,
-          T: Send
+where
+    PI: ParallelIterator<Item = T>,
+    R: ReduceOp<T>,
+    T: Send,
 {
     let consumer = ReduceConsumer { reduce_op: reduce_op };
     pi.drive_unindexed(consumer)
@@ -56,8 +59,9 @@ impl<'r, R> Clone for ReduceConsumer<'r, R> {
 }
 
 impl<'r, R, T> Consumer<T> for ReduceConsumer<'r, R>
-    where R: ReduceOp<T>,
-          T: Send
+where
+    R: ReduceOp<T>,
+    T: Send,
 {
     type Folder = ReduceFolder<'r, R, T>;
     type Reducer = Self;
@@ -76,8 +80,9 @@ impl<'r, R, T> Consumer<T> for ReduceConsumer<'r, R>
 }
 
 impl<'r, R, T> UnindexedConsumer<T> for ReduceConsumer<'r, R>
-    where R: ReduceOp<T>,
-          T: Send
+where
+    R: ReduceOp<T>,
+    T: Send,
 {
     fn split_off_left(&self) -> Self {
         ReduceConsumer { reduce_op: self.reduce_op }
@@ -89,7 +94,8 @@ impl<'r, R, T> UnindexedConsumer<T> for ReduceConsumer<'r, R>
 }
 
 impl<'r, R, T> Reducer<T> for ReduceConsumer<'r, R>
-    where R: ReduceOp<T>
+where
+    R: ReduceOp<T>,
 {
     fn reduce(self, left: T, right: T) -> T {
         self.reduce_op.reduce(left, right)
@@ -102,7 +108,8 @@ struct ReduceFolder<'r, R: 'r, T> {
 }
 
 impl<'r, R, T> Folder<T> for ReduceFolder<'r, R, T>
-    where R: ReduceOp<T>
+where
+    R: ReduceOp<T>,
 {
     type Result = T;
 
@@ -115,7 +122,8 @@ impl<'r, R, T> Folder<T> for ReduceFolder<'r, R, T>
     }
 
     fn consume_iter<I>(self, iter: I) -> Self
-        where I: IntoIterator<Item = T>
+    where
+        I: IntoIterator<Item = T>,
     {
         let iter = iter.into_iter();
         let item = self.reduce_op.reduce_iter(self.item, iter);
@@ -148,9 +156,10 @@ impl<'r, ID, OP> ReduceWithIdentityOp<'r, ID, OP> {
 }
 
 impl<'r, ID, OP, T> ReduceOp<T> for ReduceWithIdentityOp<'r, ID, OP>
-    where OP: Fn(T, T) -> T + Sync,
-          ID: Fn() -> T + Sync,
-          T: 'r
+where
+    OP: Fn(T, T) -> T + Sync,
+    ID: Fn() -> T + Sync,
+    T: 'r,
 {
     fn start_value(&self) -> T {
         (self.identity)()
@@ -161,7 +170,8 @@ impl<'r, ID, OP, T> ReduceOp<T> for ReduceWithIdentityOp<'r, ID, OP>
     }
 
     fn reduce_iter<I>(&self, value: T, iter: I) -> T
-        where I: Iterator<Item = T>
+    where
+        I: Iterator<Item = T>,
     {
         iter.fold(value, self.op)
     }

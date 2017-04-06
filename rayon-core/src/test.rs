@@ -23,10 +23,12 @@ fn start_callback_called() {
 
     let b = barrier.clone();
     let nc = n_called.clone();
-    let start_handler: StartHandler = Arc::new(move |_| {
-        nc.fetch_add(1, Ordering::SeqCst);
-        b.wait();
-    });
+    let start_handler: StartHandler = Arc::new(
+        move |_| {
+            nc.fetch_add(1, Ordering::SeqCst);
+            b.wait();
+        },
+    );
 
     let conf = Configuration::new()
         .set_num_threads(n_threads)
@@ -49,10 +51,12 @@ fn exit_callback_called() {
 
     let b = barrier.clone();
     let nc = n_called.clone();
-    let exit_handler: ExitHandler = Arc::new(move |_| {
-        nc.fetch_add(1, Ordering::SeqCst);
-        b.wait();
-    });
+    let exit_handler: ExitHandler = Arc::new(
+        move |_| {
+            nc.fetch_add(1, Ordering::SeqCst);
+            b.wait();
+        },
+    );
 
     let conf = Configuration::new()
         .set_num_threads(n_threads)
@@ -77,24 +81,30 @@ fn handler_panics_handled_correctly() {
     let start_barrier = Arc::new(Barrier::new(n_threads + 1));
     let exit_barrier = Arc::new(Barrier::new(n_threads + 1));
 
-    let start_handler: StartHandler = Arc::new(move |_| {
-        panic!("ensure panic handler is called when starting");
-    });
-    let exit_handler: ExitHandler = Arc::new(move |_| {
-        panic!("ensure panic handler is called when exiting");
-    });
+    let start_handler: StartHandler = Arc::new(
+        move |_| {
+            panic!("ensure panic handler is called when starting");
+        },
+    );
+    let exit_handler: ExitHandler = Arc::new(
+        move |_| {
+            panic!("ensure panic handler is called when exiting");
+        },
+    );
 
     let sb = start_barrier.clone();
     let eb = exit_barrier.clone();
     let nc = n_called.clone();
-    let panic_handler: PanicHandler = Arc::new(move |_| {
-        let val = nc.fetch_add(1, Ordering::SeqCst);
-        if val < n_threads {
-            sb.wait();
-        } else {
-            eb.wait();
-        }
-    });
+    let panic_handler: PanicHandler = Arc::new(
+        move |_| {
+            let val = nc.fetch_add(1, Ordering::SeqCst);
+            if val < n_threads {
+                sb.wait();
+            } else {
+                eb.wait();
+            }
+        },
+    );
 
     let conf = Configuration::new()
         .set_num_threads(n_threads)

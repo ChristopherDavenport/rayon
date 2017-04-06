@@ -85,11 +85,7 @@ fn rsort_into<T: Ord + Send + Copy>(src: &mut [T], dest: &mut [T]) {
 // threads and thus we only need a `T: Send` bound.
 fn rmerge<T: Ord + Send + Copy>(a: &mut [T], b: &mut [T], dest: &mut [T]) {
     // Swap so a is always longer.
-    let (a, b) = if a.len() > b.len() {
-        (a, b)
-    } else {
-        (b, a)
-    };
+    let (a, b) = if a.len() > b.len() { (a, b) } else { (b, a) };
     if dest.len() <= MERGE_CHUNK {
         seq_merge(a, b, dest);
         return;
@@ -236,14 +232,13 @@ fn timed_sort<F: FnOnce(&mut [u32])>(n: usize, f: F, name: &str) -> u64 {
     // Check correctness
     assert!(is_sorted(&mut v[..]));
 
-    return nanos
+    return nanos;
 }
 
 pub fn main(args: &[String]) {
-    let args: Args =
-        Docopt::new(USAGE)
-            .and_then(|d| d.argv(args).decode())
-            .unwrap_or_else(|e| e.exit());
+    let args: Args = Docopt::new(USAGE)
+        .and_then(|d| d.argv(args).decode())
+        .unwrap_or_else(|e| e.exit());
 
     if args.cmd_bench {
         let seq = timed_sort(args.flag_size, seq_merge_sort, "seq");

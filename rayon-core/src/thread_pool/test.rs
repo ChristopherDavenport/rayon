@@ -12,23 +12,28 @@ use unwind;
 #[should_panic(expected = "Hello, world!")]
 fn panic_propagate() {
     let thread_pool = ThreadPool::new(Configuration::new()).unwrap();
-    thread_pool.install(|| {
-        panic!("Hello, world!");
-    });
+    thread_pool.install(
+        || {
+            panic!("Hello, world!");
+        },
+    );
 }
 
 #[test]
 fn workers_stop() {
     let registry;
 
-    { // once we exit this block, thread-pool will be dropped
+    {
+        // once we exit this block, thread-pool will be dropped
         let thread_pool = ThreadPool::new(Configuration::new().set_num_threads(22)).unwrap();
-        registry = thread_pool.install(|| {
-            // do some work on these threads
-            join_a_lot(22);
+        registry = thread_pool.install(
+            || {
+                // do some work on these threads
+                join_a_lot(22);
 
-            thread_pool.registry.clone()
-        });
+                thread_pool.registry.clone()
+            },
+        );
         assert_eq!(registry.num_threads(), 22);
     }
 
@@ -39,7 +44,7 @@ fn workers_stop() {
 
 fn join_a_lot(n: usize) {
     if n > 0 {
-        join(|| join_a_lot(n-1), || join_a_lot(n-1));
+        join(|| join_a_lot(n - 1), || join_a_lot(n - 1));
     }
 }
 
@@ -49,7 +54,8 @@ fn sleeper_stop() {
 
     let registry;
 
-    { // once we exit this block, thread-pool will be dropped
+    {
+        // once we exit this block, thread-pool will be dropped
         let thread_pool = ThreadPool::new(Configuration::new().set_num_threads(22)).unwrap();
         registry = thread_pool.registry.clone();
 
@@ -85,7 +91,7 @@ fn wait_for_counter(mut counter: Arc<AtomicUsize>) -> usize {
             Err(counter) => {
                 thread::sleep(time::Duration::from_secs(1));
                 counter
-            },
+            }
         };
     }
 
@@ -119,12 +125,14 @@ fn panic_thread_name() {
         .set_num_threads(10)
         .set_start_handler(start_handler)
         .set_exit_handler(exit_handler)
-        .set_thread_name(|i| {
-                             if i >= 5 {
-                                 panic!();
-                             }
-                             format!("panic_thread_name#{}", i)
-                         });
+        .set_thread_name(
+            |i| {
+                if i >= 5 {
+                    panic!();
+                }
+                format!("panic_thread_name#{}", i)
+            },
+        );
 
     let pool = unwind::halt_unwinding(|| ThreadPool::new(config));
     assert!(pool.is_err(), "thread-name panic should propagate!");

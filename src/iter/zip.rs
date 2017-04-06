@@ -12,20 +12,23 @@ pub struct Zip<A: IndexedParallelIterator, B: IndexedParallelIterator> {
 ///
 /// NB: a free fn because it is NOT part of the end-user API.
 pub fn new<A, B>(a: A, b: B) -> Zip<A, B>
-    where A: IndexedParallelIterator,
-          B: IndexedParallelIterator
+where
+    A: IndexedParallelIterator,
+    B: IndexedParallelIterator,
 {
     Zip { a: a, b: b }
 }
 
 impl<A, B> ParallelIterator for Zip<A, B>
-    where A: IndexedParallelIterator,
-          B: IndexedParallelIterator
+where
+    A: IndexedParallelIterator,
+    B: IndexedParallelIterator,
 {
     type Item = (A::Item, B::Item);
 
     fn drive_unindexed<C>(self, consumer: C) -> C::Result
-        where C: UnindexedConsumer<Self::Item>
+    where
+        C: UnindexedConsumer<Self::Item>,
     {
         bridge(self, consumer)
     }
@@ -36,23 +39,26 @@ impl<A, B> ParallelIterator for Zip<A, B>
 }
 
 impl<A, B> BoundedParallelIterator for Zip<A, B>
-    where A: IndexedParallelIterator,
-          B: IndexedParallelIterator
+where
+    A: IndexedParallelIterator,
+    B: IndexedParallelIterator,
 {
     fn upper_bound(&mut self) -> usize {
         self.len()
     }
 
     fn drive<C>(self, consumer: C) -> C::Result
-        where C: Consumer<Self::Item>
+    where
+        C: Consumer<Self::Item>,
     {
         bridge(self, consumer)
     }
 }
 
 impl<A, B> ExactParallelIterator for Zip<A, B>
-    where A: IndexedParallelIterator,
-          B: IndexedParallelIterator
+where
+    A: IndexedParallelIterator,
+    B: IndexedParallelIterator,
 {
     fn len(&mut self) -> usize {
         cmp::min(self.a.len(), self.b.len())
@@ -60,16 +66,21 @@ impl<A, B> ExactParallelIterator for Zip<A, B>
 }
 
 impl<A, B> IndexedParallelIterator for Zip<A, B>
-    where A: IndexedParallelIterator,
-          B: IndexedParallelIterator
+where
+    A: IndexedParallelIterator,
+    B: IndexedParallelIterator,
 {
     fn with_producer<CB>(self, callback: CB) -> CB::Output
-        where CB: ProducerCallback<Self::Item>
+    where
+        CB: ProducerCallback<Self::Item>,
     {
-        return self.a.with_producer(CallbackA {
-                                        callback: callback,
-                                        b: self.b,
-                                    });
+        return self.a
+                   .with_producer(
+            CallbackA {
+                callback: callback,
+                b: self.b,
+            },
+        );
 
         struct CallbackA<CB, B> {
             callback: CB,
@@ -77,18 +88,24 @@ impl<A, B> IndexedParallelIterator for Zip<A, B>
         }
 
         impl<CB, A_ITEM, B> ProducerCallback<A_ITEM> for CallbackA<CB, B>
-            where B: IndexedParallelIterator,
-                  CB: ProducerCallback<(A_ITEM, B::Item)>
+        where
+            B: IndexedParallelIterator,
+            CB: ProducerCallback<(A_ITEM,
+                                  B::Item)>,
         {
             type Output = CB::Output;
 
             fn callback<A>(self, a_producer: A) -> Self::Output
-                where A: Producer<Item = A_ITEM>
+            where
+                A: Producer<Item = A_ITEM>,
             {
-                return self.b.with_producer(CallbackB {
-                                                a_producer: a_producer,
-                                                callback: self.callback,
-                                            });
+                return self.b
+                           .with_producer(
+                    CallbackB {
+                        a_producer: a_producer,
+                        callback: self.callback,
+                    },
+                );
             }
         }
 
@@ -98,18 +115,24 @@ impl<A, B> IndexedParallelIterator for Zip<A, B>
         }
 
         impl<CB, A, B_ITEM> ProducerCallback<B_ITEM> for CallbackB<CB, A>
-            where A: Producer,
-                  CB: ProducerCallback<(A::Item, B_ITEM)>
+        where
+            A: Producer,
+            CB: ProducerCallback<(A::Item,
+                                  B_ITEM)>,
         {
             type Output = CB::Output;
 
             fn callback<B>(self, b_producer: B) -> Self::Output
-                where B: Producer<Item = B_ITEM>
+            where
+                B: Producer<Item = B_ITEM>,
             {
-                self.callback.callback(ZipProducer {
-                                           a: self.a_producer,
-                                           b: b_producer,
-                                       })
+                self.callback
+                    .callback(
+                        ZipProducer {
+                            a: self.a_producer,
+                            b: b_producer,
+                        },
+                    )
             }
         }
 

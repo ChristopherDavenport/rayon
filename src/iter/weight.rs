@@ -11,12 +11,14 @@ pub fn new<I>(base: I) -> Weight<I> {
 }
 
 impl<I> ParallelIterator for Weight<I>
-    where I: ParallelIterator
+where
+    I: ParallelIterator,
 {
     type Item = I::Item;
 
     fn drive_unindexed<C>(self, consumer: C) -> C::Result
-        where C: UnindexedConsumer<Self::Item>
+    where
+        C: UnindexedConsumer<Self::Item>,
     {
         self.base.drive_unindexed(consumer)
     }
@@ -32,7 +34,8 @@ impl<I: BoundedParallelIterator> BoundedParallelIterator for Weight<I> {
     }
 
     fn drive<C>(self, consumer: C) -> C::Result
-        where C: Consumer<Self::Item>
+    where
+        C: Consumer<Self::Item>,
     {
         self.base.drive(consumer)
     }
@@ -46,7 +49,8 @@ impl<I: ExactParallelIterator> ExactParallelIterator for Weight<I> {
 
 impl<I: IndexedParallelIterator> IndexedParallelIterator for Weight<I> {
     fn with_producer<CB>(self, callback: CB) -> CB::Output
-        where CB: ProducerCallback<Self::Item>
+    where
+        CB: ProducerCallback<Self::Item>,
     {
         self.base.with_producer(callback)
     }

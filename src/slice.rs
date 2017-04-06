@@ -14,22 +14,29 @@ pub trait ParallelSlice<T> {
 
     /// Returns a parallel iterator over all contiguous windows of
     /// length `size`. The windows overlap.
-    fn par_windows(&self, size: usize) -> Windows<T> where T: Sync;
+    fn par_windows(&self, size: usize) -> Windows<T>
+    where
+        T: Sync;
 
     /// Returns a parallel iterator over at most `size` elements of
     /// `self` at a time. The chunks do not overlap.
-    fn par_chunks(&self, size: usize) -> Chunks<T> where T: Sync;
+    fn par_chunks(&self, size: usize) -> Chunks<T>
+    where
+        T: Sync;
 
     /// Returns a parallel iterator over at most `size` elements of
     /// `self` at a time. The chunks are mutable and do not overlap.
-    fn par_chunks_mut(&mut self, size: usize) -> ChunksMut<T> where T: Send;
+    fn par_chunks_mut(&mut self, size: usize) -> ChunksMut<T>
+    where
+        T: Send;
 }
 
 impl<T> ParallelSlice<T> for [T] {
     private_impl!{}
 
     fn par_windows(&self, window_size: usize) -> Windows<T>
-        where T: Sync
+    where
+        T: Sync,
     {
         Windows {
             window_size: window_size,
@@ -38,7 +45,8 @@ impl<T> ParallelSlice<T> for [T] {
     }
 
     fn par_chunks(&self, chunk_size: usize) -> Chunks<T>
-        where T: Sync
+    where
+        T: Sync,
     {
         Chunks {
             chunk_size: chunk_size,
@@ -47,7 +55,8 @@ impl<T> ParallelSlice<T> for [T] {
     }
 
     fn par_chunks_mut(&mut self, chunk_size: usize) -> ChunksMut<T>
-        where T: Send
+    where
+        T: Send,
     {
         ChunksMut {
             chunk_size: chunk_size,
@@ -102,7 +111,8 @@ impl<'data, T: Sync + 'data> ParallelIterator for Iter<'data, T> {
     type Item = &'data T;
 
     fn drive_unindexed<C>(self, consumer: C) -> C::Result
-        where C: UnindexedConsumer<Self::Item>
+    where
+        C: UnindexedConsumer<Self::Item>,
     {
         bridge(self, consumer)
     }
@@ -118,7 +128,8 @@ impl<'data, T: Sync + 'data> BoundedParallelIterator for Iter<'data, T> {
     }
 
     fn drive<C>(self, consumer: C) -> C::Result
-        where C: Consumer<Self::Item>
+    where
+        C: Consumer<Self::Item>,
     {
         bridge(self, consumer)
     }
@@ -132,7 +143,8 @@ impl<'data, T: Sync + 'data> ExactParallelIterator for Iter<'data, T> {
 
 impl<'data, T: Sync + 'data> IndexedParallelIterator for Iter<'data, T> {
     fn with_producer<CB>(self, callback: CB) -> CB::Output
-        where CB: ProducerCallback<Self::Item>
+    where
+        CB: ProducerCallback<Self::Item>,
     {
         callback.callback(IterProducer { slice: self.slice })
     }
@@ -167,7 +179,8 @@ impl<'data, T: Sync + 'data> ParallelIterator for Chunks<'data, T> {
     type Item = &'data [T];
 
     fn drive_unindexed<C>(self, consumer: C) -> C::Result
-        where C: UnindexedConsumer<Self::Item>
+    where
+        C: UnindexedConsumer<Self::Item>,
     {
         bridge(self, consumer)
     }
@@ -183,7 +196,8 @@ impl<'data, T: Sync + 'data> BoundedParallelIterator for Chunks<'data, T> {
     }
 
     fn drive<C>(self, consumer: C) -> C::Result
-        where C: Consumer<Self::Item>
+    where
+        C: Consumer<Self::Item>,
     {
         bridge(self, consumer)
     }
@@ -197,12 +211,15 @@ impl<'data, T: Sync + 'data> ExactParallelIterator for Chunks<'data, T> {
 
 impl<'data, T: Sync + 'data> IndexedParallelIterator for Chunks<'data, T> {
     fn with_producer<CB>(self, callback: CB) -> CB::Output
-        where CB: ProducerCallback<Self::Item>
+    where
+        CB: ProducerCallback<Self::Item>,
     {
-        callback.callback(ChunksProducer {
-                              chunk_size: self.chunk_size,
-                              slice: self.slice,
-                          })
+        callback.callback(
+            ChunksProducer {
+                chunk_size: self.chunk_size,
+                slice: self.slice,
+            },
+        )
     }
 }
 
@@ -244,7 +261,8 @@ impl<'data, T: Sync + 'data> ParallelIterator for Windows<'data, T> {
     type Item = &'data [T];
 
     fn drive_unindexed<C>(self, consumer: C) -> C::Result
-        where C: UnindexedConsumer<Self::Item>
+    where
+        C: UnindexedConsumer<Self::Item>,
     {
         bridge(self, consumer)
     }
@@ -260,7 +278,8 @@ impl<'data, T: Sync + 'data> BoundedParallelIterator for Windows<'data, T> {
     }
 
     fn drive<C>(self, consumer: C) -> C::Result
-        where C: Consumer<Self::Item>
+    where
+        C: Consumer<Self::Item>,
     {
         bridge(self, consumer)
     }
@@ -275,12 +294,15 @@ impl<'data, T: Sync + 'data> ExactParallelIterator for Windows<'data, T> {
 
 impl<'data, T: Sync + 'data> IndexedParallelIterator for Windows<'data, T> {
     fn with_producer<CB>(self, callback: CB) -> CB::Output
-        where CB: ProducerCallback<Self::Item>
+    where
+        CB: ProducerCallback<Self::Item>,
     {
-        callback.callback(WindowsProducer {
-                              window_size: self.window_size,
-                              slice: self.slice,
-                          })
+        callback.callback(
+            WindowsProducer {
+                window_size: self.window_size,
+                slice: self.slice,
+            },
+        )
     }
 }
 
@@ -322,7 +344,8 @@ impl<'data, T: Send + 'data> ParallelIterator for IterMut<'data, T> {
     type Item = &'data mut T;
 
     fn drive_unindexed<C>(self, consumer: C) -> C::Result
-        where C: UnindexedConsumer<Self::Item>
+    where
+        C: UnindexedConsumer<Self::Item>,
     {
         bridge(self, consumer)
     }
@@ -338,7 +361,8 @@ impl<'data, T: Send + 'data> BoundedParallelIterator for IterMut<'data, T> {
     }
 
     fn drive<C>(self, consumer: C) -> C::Result
-        where C: Consumer<Self::Item>
+    where
+        C: Consumer<Self::Item>,
     {
         bridge(self, consumer)
     }
@@ -352,7 +376,8 @@ impl<'data, T: Send + 'data> ExactParallelIterator for IterMut<'data, T> {
 
 impl<'data, T: Send + 'data> IndexedParallelIterator for IterMut<'data, T> {
     fn with_producer<CB>(self, callback: CB) -> CB::Output
-        where CB: ProducerCallback<Self::Item>
+    where
+        CB: ProducerCallback<Self::Item>,
     {
         callback.callback(IterMutProducer { slice: self.slice })
     }
@@ -387,7 +412,8 @@ impl<'data, T: Send + 'data> ParallelIterator for ChunksMut<'data, T> {
     type Item = &'data mut [T];
 
     fn drive_unindexed<C>(self, consumer: C) -> C::Result
-        where C: UnindexedConsumer<Self::Item>
+    where
+        C: UnindexedConsumer<Self::Item>,
     {
         bridge(self, consumer)
     }
@@ -403,7 +429,8 @@ impl<'data, T: Send + 'data> BoundedParallelIterator for ChunksMut<'data, T> {
     }
 
     fn drive<C>(self, consumer: C) -> C::Result
-        where C: Consumer<Self::Item>
+    where
+        C: Consumer<Self::Item>,
     {
         bridge(self, consumer)
     }
@@ -417,12 +444,15 @@ impl<'data, T: Send + 'data> ExactParallelIterator for ChunksMut<'data, T> {
 
 impl<'data, T: Send + 'data> IndexedParallelIterator for ChunksMut<'data, T> {
     fn with_producer<CB>(self, callback: CB) -> CB::Output
-        where CB: ProducerCallback<Self::Item>
+    where
+        CB: ProducerCallback<Self::Item>,
     {
-        callback.callback(ChunksMutProducer {
-                              chunk_size: self.chunk_size,
-                              slice: self.slice,
-                          })
+        callback.callback(
+            ChunksMutProducer {
+                chunk_size: self.chunk_size,
+                slice: self.slice,
+            },
+        )
     }
 }
 

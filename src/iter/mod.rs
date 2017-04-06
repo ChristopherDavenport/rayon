@@ -84,7 +84,8 @@ pub trait IntoParallelRefIterator<'data> {
 }
 
 impl<'data, I: 'data + ?Sized> IntoParallelRefIterator<'data> for I
-    where &'data I: IntoParallelIterator
+where
+    &'data I: IntoParallelIterator,
 {
     type Iter = <&'data I as IntoParallelIterator>::Iter;
     type Item = <&'data I as IntoParallelIterator>::Item;
@@ -132,7 +133,8 @@ pub trait ParallelIterator: Sized {
 
     /// Executes `OP` on each item produced by the iterator, in parallel.
     fn for_each<OP>(self, op: OP)
-        where OP: Fn(Self::Item) + Sync
+    where
+        OP: Fn(Self::Item) + Sync,
     {
         for_each::for_each(self, &op)
     }
@@ -145,8 +147,9 @@ pub trait ParallelIterator: Sized {
     /// Applies `map_op` to each item of this iterator, producing a new
     /// iterator with the results.
     fn map<F, R>(self, map_op: F) -> Map<Self, MapFn<F>>
-        where F: Fn(Self::Item) -> R + Sync,
-              R: Send
+    where
+        F: Fn(Self::Item) -> R + Sync,
+        R: Send,
     {
         map::new(self, MapFn(map_op))
     }
@@ -154,8 +157,9 @@ pub trait ParallelIterator: Sized {
     /// Creates an iterator which clones all of its elements.  This may be
     /// useful when you have an iterator over `&T`, but you need `T`.
     fn cloned<'a, T>(self) -> Map<Self, MapCloned>
-        where T: 'a + Clone + Send,
-              Self: ParallelIterator<Item = &'a T>
+    where
+        T: 'a + Clone + Send,
+        Self: ParallelIterator<Item = &'a T>,
     {
         map::new(self, MapCloned)
     }
@@ -164,7 +168,8 @@ pub trait ParallelIterator: Sized {
     /// producing a new iterator passing through the original items.  This is
     /// often useful for debugging to see what's happening in iterator stages.
     fn inspect<OP>(self, inspect_op: OP) -> Map<Self, MapInspect<OP>>
-        where OP: Fn(&Self::Item) + Sync
+    where
+        OP: Fn(&Self::Item) + Sync,
     {
         map::new(self, MapInspect(inspect_op))
     }
@@ -172,7 +177,8 @@ pub trait ParallelIterator: Sized {
     /// Applies `filter_op` to each item of this iterator, producing a new
     /// iterator with only the items that gave `true` results.
     fn filter<P>(self, filter_op: P) -> Filter<Self, P>
-        where P: Fn(&Self::Item) -> bool + Sync
+    where
+        P: Fn(&Self::Item) -> bool + Sync,
     {
         filter::new(self, filter_op)
     }
@@ -180,8 +186,9 @@ pub trait ParallelIterator: Sized {
     /// Applies `filter_op` to each item of this iterator to get an `Option`,
     /// producing a new iterator with only the items from `Some` results.
     fn filter_map<P, R>(self, filter_op: P) -> FilterMap<Self, P>
-        where P: Fn(Self::Item) -> Option<R> + Sync,
-              R: Send
+    where
+        P: Fn(Self::Item) -> Option<R> + Sync,
+        R: Send,
     {
         filter_map::new(self, filter_op)
     }
@@ -189,8 +196,9 @@ pub trait ParallelIterator: Sized {
     /// Applies `map_op` to each item of this iterator to get nested iterators,
     /// producing a new iterator that flattens these back into one.
     fn flat_map<F, PI>(self, map_op: F) -> FlatMap<Self, F>
-        where F: Fn(Self::Item) -> PI + Sync,
-              PI: IntoParallelIterator
+    where
+        F: Fn(Self::Item) -> PI + Sync,
+        PI: IntoParallelIterator,
     {
         flat_map::new(self, map_op)
     }
@@ -226,8 +234,9 @@ pub trait ParallelIterator: Sized {
     ///
     /// [associative]: https://en.wikipedia.org/wiki/Associative_property
     fn reduce<OP, ID>(self, identity: ID, op: OP) -> Self::Item
-        where OP: Fn(Self::Item, Self::Item) -> Self::Item + Sync,
-              ID: Fn() -> Self::Item + Sync
+    where
+        OP: Fn(Self::Item, Self::Item) -> Self::Item + Sync,
+        ID: Fn() -> Self::Item + Sync,
     {
         reduce::reduce(self, &reduce::ReduceWithIdentityOp::new(&identity, &op))
     }
@@ -247,20 +256,25 @@ pub trait ParallelIterator: Sized {
     ///
     /// [associative]: https://en.wikipedia.org/wiki/Associative_property
     fn reduce_with<OP>(self, op: OP) -> Option<Self::Item>
-        where OP: Fn(Self::Item, Self::Item) -> Self::Item + Sync
+    where
+        OP: Fn(Self::Item, Self::Item) -> Self::Item + Sync,
     {
-        self.map(Some).reduce(|| None, |opt_a, opt_b| match (opt_a, opt_b) {
-            (Some(a), Some(b)) => Some(op(a, b)),
-            (Some(v), None) | (None, Some(v)) => Some(v),
-            (None, None) => None,
-        })
+        self.map(Some)
+            .reduce(
+                || None, |opt_a, opt_b| match (opt_a, opt_b) {
+                    (Some(a), Some(b)) => Some(op(a, b)),
+                    (Some(v), None) | (None, Some(v)) => Some(v),
+                    (None, None) => None,
+                }
+            )
     }
 
     /// Deprecated. Use `reduce()` instead.
     #[deprecated(since = "v0.5.0", note = "call `reduce` instead")]
     fn reduce_with_identity<OP>(self, identity: Self::Item, op: OP) -> Self::Item
-        where OP: Fn(Self::Item, Self::Item) -> Self::Item + Sync,
-              Self::Item: Clone + Sync
+    where
+        OP: Fn(Self::Item, Self::Item) -> Self::Item + Sync,
+        Self::Item: Clone + Sync,
     {
         self.reduce(|| identity.clone(), op)
     }
@@ -393,9 +407,10 @@ pub trait ParallelIterator: Sized {
     /// assert_eq!(sum, (0..22).sum()); // compare to sequential
     /// ```
     fn fold<T, ID, F>(self, identity: ID, fold_op: F) -> fold::Fold<Self, ID, F>
-        where F: Fn(T, Self::Item) -> T + Sync,
-              ID: Fn() -> T + Sync,
-              T: Send
+    where
+        F: Fn(T, Self::Item) -> T + Sync,
+        ID: Fn() -> T + Sync,
+        T: Send,
     {
         fold::fold(self, identity, fold_op)
     }
@@ -413,7 +428,8 @@ pub trait ParallelIterator: Sized {
     /// except that the type of `0` and the `+` operation may vary
     /// depending on the type of value being produced.
     fn sum<S>(self) -> S
-        where S: Send + Sum<Self::Item> + Sum
+    where
+        S: Send + Sum<Self::Item> + Sum,
     {
         sum::sum(self)
     }
@@ -431,7 +447,8 @@ pub trait ParallelIterator: Sized {
     /// except that the type of `1` and the `*` operation may vary
     /// depending on the type of value being produced.
     fn product<P>(self) -> P
-        where P: Send + Product<Self::Item> + Product
+    where
+        P: Send + Product<Self::Item> + Product,
     {
         product::product(self)
     }
@@ -440,7 +457,8 @@ pub trait ParallelIterator: Sized {
     #[deprecated(since = "v0.6.0",
         note = "name changed to `product()` to match sequential iterators")]
     fn mul(self) -> Self::Item
-        where Self::Item: Product
+    where
+        Self::Item: Product,
     {
         product::product(self)
     }
@@ -455,7 +473,8 @@ pub trait ParallelIterator: Sized {
     ///
     /// Basically equivalent to `self.reduce_with(|a, b| cmp::min(a, b))`.
     fn min(self) -> Option<Self::Item>
-        where Self::Item: Ord
+    where
+        Self::Item: Ord,
     {
         self.reduce_with(cmp::min)
     }
@@ -468,14 +487,17 @@ pub trait ParallelIterator: Sized {
     /// specified, so if the `Ord` impl is not truly associative, then
     /// the results are not deterministic.
     fn min_by_key<K, F>(self, f: F) -> Option<Self::Item>
-        where K: Ord + Send,
-              F: Sync + Fn(&Self::Item) -> K
+    where
+        K: Ord + Send,
+        F: Sync + Fn(&Self::Item) -> K,
     {
         self.map(|x| (f(&x), x))
-            .reduce_with(|a, b| match (a.0).cmp(&b.0) {
-                             Ordering::Greater => b,
-                             _ => a,
-                         })
+            .reduce_with(
+                |a, b| match (a.0).cmp(&b.0) {
+                    Ordering::Greater => b,
+                    _ => a,
+                },
+            )
             .map(|(_, x)| x)
     }
 
@@ -489,7 +511,8 @@ pub trait ParallelIterator: Sized {
     ///
     /// Basically equivalent to `self.reduce_with(|a, b| cmp::max(a, b))`.
     fn max(self) -> Option<Self::Item>
-        where Self::Item: Ord
+    where
+        Self::Item: Ord,
     {
         self.reduce_with(cmp::max)
     }
@@ -502,20 +525,24 @@ pub trait ParallelIterator: Sized {
     /// specified, so if the `Ord` impl is not truly associative, then
     /// the results are not deterministic.
     fn max_by_key<K, F>(self, f: F) -> Option<Self::Item>
-        where K: Ord + Send,
-              F: Sync + Fn(&Self::Item) -> K
+    where
+        K: Ord + Send,
+        F: Sync + Fn(&Self::Item) -> K,
     {
         self.map(|x| (f(&x), x))
-            .reduce_with(|a, b| match (a.0).cmp(&b.0) {
-                             Ordering::Greater => a,
-                             _ => b,
-                         })
+            .reduce_with(
+                |a, b| match (a.0).cmp(&b.0) {
+                    Ordering::Greater => a,
+                    _ => b,
+                },
+            )
             .map(|(_, x)| x)
     }
 
     /// Takes two iterators and creates a new iterator over both.
     fn chain<C>(self, chain: C) -> Chain<Self, C::Iter>
-        where C: IntoParallelIterator<Item = Self::Item>
+    where
+        C: IntoParallelIterator<Item = Self::Item>,
     {
         chain::new(self, chain.into_par_iter())
     }
@@ -532,7 +559,8 @@ pub trait ParallelIterator: Sized {
     ///
     /// [find]: https://doc.rust-lang.org/std/iter/trait.Iterator.html#method.find
     fn find_any<P>(self, predicate: P) -> Option<Self::Item>
-        where P: Fn(&Self::Item) -> bool + Sync
+    where
+        P: Fn(&Self::Item) -> bool + Sync,
     {
         find::find(self, predicate)
     }
@@ -547,7 +575,8 @@ pub trait ParallelIterator: Sized {
     /// Note that not all parallel iterators have a useful order, much like
     /// sequential `HashMap` iteration, so "first" may be nebulous.
     fn find_first<P>(self, predicate: P) -> Option<Self::Item>
-        where P: Fn(&Self::Item) -> bool + Sync
+    where
+        P: Fn(&Self::Item) -> bool + Sync,
     {
         find_first_last::find_first(self, predicate)
     }
@@ -562,7 +591,8 @@ pub trait ParallelIterator: Sized {
     /// Note that not all parallel iterators have a useful order, much like
     /// sequential `HashMap` iteration, so "last" may be nebulous.
     fn find_last<P>(self, predicate: P) -> Option<Self::Item>
-        where P: Fn(&Self::Item) -> bool + Sync
+    where
+        P: Fn(&Self::Item) -> bool + Sync,
     {
         find_first_last::find_last(self, predicate)
     }
@@ -571,7 +601,8 @@ pub trait ParallelIterator: Sized {
     #[deprecated(note = "parallel `find` does not search in order -- use `find_any`, \\
     `find_first`, or `find_last`")]
     fn find<P>(self, predicate: P) -> Option<Self::Item>
-        where P: Fn(&Self::Item) -> bool + Sync
+    where
+        P: Fn(&Self::Item) -> bool + Sync,
     {
         self.find_any(predicate)
     }
@@ -582,7 +613,8 @@ pub trait ParallelIterator: Sized {
     /// of the items.  Proving that there's no match, returning false,
     /// does require visiting every item.
     fn any<P>(self, predicate: P) -> bool
-        where P: Fn(Self::Item) -> bool + Sync
+    where
+        P: Fn(Self::Item) -> bool + Sync,
     {
         self.map(predicate).find_any(|&p| p).is_some()
     }
@@ -591,7 +623,8 @@ pub trait ParallelIterator: Sized {
     /// predicate, and if so returns true.  If a counter-example is found,
     /// we'll attempt to stop processing more items, then return false.
     fn all<P>(self, predicate: P) -> bool
-        where P: Fn(Self::Item) -> bool + Sync
+    where
+        P: Fn(Self::Item) -> bool + Sync,
     {
         self.map(predicate).find_any(|&p| !p).is_none()
     }
@@ -604,7 +637,8 @@ pub trait ParallelIterator: Sized {
     /// iterator contains, and even allows you to reuse an existing
     /// vector's backing store rather than allocating a fresh vector.
     fn collect<C>(self) -> C
-        where C: FromParallelIterator<Self::Item>
+    where
+        C: FromParallelIterator<Self::Item>,
     {
         C::from_par_iter(self)
     }
@@ -621,7 +655,9 @@ pub trait ParallelIterator: Sized {
     /// iterators.
     ///
     /// [README]: README.md
-    fn drive_unindexed<C>(self, consumer: C) -> C::Result where C: UnindexedConsumer<Self::Item>;
+    fn drive_unindexed<C>(self, consumer: C) -> C::Result
+    where
+        C: UnindexedConsumer<Self::Item>;
 
 
     /// Internal method used to define the behavior of this parallel
@@ -703,8 +739,9 @@ pub trait IndexedParallelIterator: ExactParallelIterator {
     /// iterators are of unequal length, you only get the items they
     /// have in common.
     fn zip<Z>(self, zip_op: Z) -> Zip<Self, Z::Iter>
-        where Z: IntoParallelIterator,
-              Z::Iter: IndexedParallelIterator
+    where
+        Z: IntoParallelIterator,
+        Z::Iter: IndexedParallelIterator,
     {
         zip::new(self, zip_op.into_par_iter())
     }
@@ -712,9 +749,10 @@ pub trait IndexedParallelIterator: ExactParallelIterator {
     /// Lexicographically compares the elements of this `ParallelIterator` with those of
     /// another.
     fn cmp<I>(mut self, other: I) -> Ordering
-        where I: IntoParallelIterator<Item = Self::Item>,
-              I::Iter: IndexedParallelIterator,
-              Self::Item: Ord
+    where
+        I: IntoParallelIterator<Item = Self::Item>,
+        I::Iter: IndexedParallelIterator,
+        Self::Item: Ord,
     {
         let mut other = other.into_par_iter();
         let ord_len = self.len().cmp(&other.len());
@@ -727,9 +765,10 @@ pub trait IndexedParallelIterator: ExactParallelIterator {
     /// Lexicographically compares the elements of this `ParallelIterator` with those of
     /// another.
     fn partial_cmp<I>(mut self, other: I) -> Option<Ordering>
-        where I: IntoParallelIterator,
-              I::Iter: IndexedParallelIterator,
-              Self::Item: PartialOrd<I::Item>
+    where
+        I: IntoParallelIterator,
+        I::Iter: IndexedParallelIterator,
+        Self::Item: PartialOrd<I::Item>,
     {
         let mut other = other.into_par_iter();
         let ord_len = self.len().cmp(&other.len());
@@ -742,9 +781,10 @@ pub trait IndexedParallelIterator: ExactParallelIterator {
     /// Determines if the elements of this `ParallelIterator`
     /// are equal to those of another
     fn eq<I>(mut self, other: I) -> bool
-        where I: IntoParallelIterator,
-              I::Iter: IndexedParallelIterator,
-              Self::Item: PartialEq<I::Item>
+    where
+        I: IntoParallelIterator,
+        I::Iter: IndexedParallelIterator,
+        Self::Item: PartialEq<I::Item>,
     {
         let mut other = other.into_par_iter();
         self.len() == other.len() && self.zip(other).all(|(x, y)| x.eq(&y))
@@ -753,9 +793,10 @@ pub trait IndexedParallelIterator: ExactParallelIterator {
     /// Determines if the elements of this `ParallelIterator`
     /// are unequal to those of another
     fn ne<I>(self, other: I) -> bool
-        where I: IntoParallelIterator,
-              I::Iter: IndexedParallelIterator,
-              Self::Item: PartialEq<I::Item>
+    where
+        I: IntoParallelIterator,
+        I::Iter: IndexedParallelIterator,
+        Self::Item: PartialEq<I::Item>,
     {
         !self.eq(other)
     }
@@ -763,9 +804,10 @@ pub trait IndexedParallelIterator: ExactParallelIterator {
     /// Determines if the elements of this `ParallelIterator`
     /// are lexicographically less than those of another.
     fn lt<I>(self, other: I) -> bool
-        where I: IntoParallelIterator,
-              I::Iter: IndexedParallelIterator,
-              Self::Item: PartialOrd<I::Item>
+    where
+        I: IntoParallelIterator,
+        I::Iter: IndexedParallelIterator,
+        Self::Item: PartialOrd<I::Item>,
     {
         self.partial_cmp(other) == Some(Ordering::Less)
     }
@@ -773,9 +815,10 @@ pub trait IndexedParallelIterator: ExactParallelIterator {
     /// Determines if the elements of this `ParallelIterator`
     /// are less or equal to those of another.
     fn le<I>(self, other: I) -> bool
-        where I: IntoParallelIterator,
-              I::Iter: IndexedParallelIterator,
-              Self::Item: PartialOrd<I::Item>
+    where
+        I: IntoParallelIterator,
+        I::Iter: IndexedParallelIterator,
+        Self::Item: PartialOrd<I::Item>,
     {
         let ord = self.partial_cmp(other);
         ord == Some(Ordering::Equal) || ord == Some(Ordering::Less)
@@ -784,9 +827,10 @@ pub trait IndexedParallelIterator: ExactParallelIterator {
     /// Determines if the elements of this `ParallelIterator`
     /// are lexicographically greater than those of another.
     fn gt<I>(self, other: I) -> bool
-        where I: IntoParallelIterator,
-              I::Iter: IndexedParallelIterator,
-              Self::Item: PartialOrd<I::Item>
+    where
+        I: IntoParallelIterator,
+        I::Iter: IndexedParallelIterator,
+        Self::Item: PartialOrd<I::Item>,
     {
         self.partial_cmp(other) == Some(Ordering::Greater)
     }
@@ -794,9 +838,10 @@ pub trait IndexedParallelIterator: ExactParallelIterator {
     /// Determines if the elements of this `ParallelIterator`
     /// are less or equal to those of another.
     fn ge<I>(self, other: I) -> bool
-        where I: IntoParallelIterator,
-              I::Iter: IndexedParallelIterator,
-              Self::Item: PartialOrd<I::Item>
+    where
+        I: IntoParallelIterator,
+        I::Iter: IndexedParallelIterator,
+        Self::Item: PartialOrd<I::Item>,
     {
         let ord = self.partial_cmp(other);
         ord == Some(Ordering::Equal) || ord == Some(Ordering::Greater)
@@ -823,7 +868,8 @@ pub trait IndexedParallelIterator: ExactParallelIterator {
     /// necessarily find the **first** match, and once a match is
     /// found we'll attempt to stop processing any more.
     fn position_any<P>(self, predicate: P) -> Option<usize>
-        where P: Fn(Self::Item) -> bool + Sync
+    where
+        P: Fn(Self::Item) -> bool + Sync,
     {
         self.map(predicate)
             .enumerate()
@@ -842,7 +888,8 @@ pub trait IndexedParallelIterator: ExactParallelIterator {
     /// Note that not all parallel iterators have a useful order, much like
     /// sequential `HashMap` iteration, so "first" may be nebulous.
     fn position_first<P>(self, predicate: P) -> Option<usize>
-        where P: Fn(Self::Item) -> bool + Sync
+    where
+        P: Fn(Self::Item) -> bool + Sync,
     {
         self.map(predicate)
             .enumerate()
@@ -861,7 +908,8 @@ pub trait IndexedParallelIterator: ExactParallelIterator {
     /// Note that not all parallel iterators have a useful order, much like
     /// sequential `HashMap` iteration, so "last" may be nebulous.
     fn position_last<P>(self, predicate: P) -> Option<usize>
-        where P: Fn(Self::Item) -> bool + Sync
+    where
+        P: Fn(Self::Item) -> bool + Sync,
     {
         self.map(predicate)
             .enumerate()
@@ -873,7 +921,8 @@ pub trait IndexedParallelIterator: ExactParallelIterator {
     #[deprecated(note = "parallel `position` does not search in order -- use `position_any`, \\
     `position_first`, or `position_last`")]
     fn position<P>(self, predicate: P) -> Option<usize>
-        where P: Fn(Self::Item) -> bool + Sync
+    where
+        P: Fn(Self::Item) -> bool + Sync,
     {
         self.position_any(predicate)
     }
@@ -927,7 +976,10 @@ pub trait IndexedParallelIterator: ExactParallelIterator {
 /// [`ParallelIterator`]: trait.ParallelIterator.html
 /// [`collect()`]: trait.ParallelIterator.html#method.collect
 pub trait FromParallelIterator<T>
-    where T: Send
+where
+    T: Send,
 {
-    fn from_par_iter<I>(par_iter: I) -> Self where I: IntoParallelIterator<Item = T>;
+    fn from_par_iter<I>(par_iter: I) -> Self
+    where
+        I: IntoParallelIterator<Item = T>;
 }
