@@ -16,9 +16,12 @@ matrix:
 
 before_script:
   - export PATH="$PATH:$HOME/.cargo/bin"
-  - cargo install rustfmt
+  - which rustfmt || cargo install rustfmt
 script:
-  - cargo fmt -- --write-mode=diff
+  - |
+    if [ $TRAVIS_RUST_VERSION != 1.12.0 ]; then
+      cargo fmt --all -- --write-mode=diff
+    fi
   - cargo build --features="$FEATURES"
   - |
     if [ $TRAVIS_RUST_VERSION == nightly ]; then
