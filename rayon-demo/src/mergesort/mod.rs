@@ -7,7 +7,8 @@ Usage: mergesort bench [--size N]
 Parallel mergesort: regular sorting with a parallel merge step.
 O(n log n) time; O(n) extra space; critical path is O(log^3 n)
 
-Algorithm described in: https://software.intel.com/en-us/articles/a-parallel-stable-sort-using-c11-for-tbb-cilk-plus-and-openmp
+Algorithm described in: https://software.intel.com/en-us/articles/a-parallel-stable-sort-using-\
+c11-for-tbb-cilk-plus-and-openmp
 
 Commands:
     bench              Run the benchmark in different modes and print the timings.
