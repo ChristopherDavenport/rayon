@@ -1608,3 +1608,14 @@ fn check_partition_map() {
     assert_eq!(a, vec![1, 2, 3]);
     assert_eq!(b, "abcxyz");
 }
+
+#[test]
+fn check_repeat_eq() {
+    let v = vec!(4,4,4,4);
+    let mut fours: Vec<_> = repeat(4)
+    .take(4)
+    .zip(v)
+    .collect();
+    assert_eq!(fours.len(), 4);
+    assert_eq!(fours.pop(), Some((4, 4)));
+}
